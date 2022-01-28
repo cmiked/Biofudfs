@@ -195,6 +195,7 @@ DEFINE_EXECUTE_AT_END(renew_vol_pat_a)
 
   Domain *domain;
   real total_flux, volume, old_flux, timestep;
+  total_flux = 0.0;
   int surface_thread_id, iprop;
   fid = fopen("pat_a_inlet_id", "r");
   //reading the surface id and the flow variable id
@@ -250,6 +251,7 @@ DEFINE_EXECUTE_AT_END(renew_vol_pat_b)
 
   Domain *domain;
   real total_flux, volume, old_flux, timestep;
+  total_flux = 0.0;
   int surface_thread_id, iprop;
   fid = fopen("pat_b_inlet_id", "r");
   //reading the surface id and the flow variable id
