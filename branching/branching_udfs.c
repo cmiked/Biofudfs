@@ -37,20 +37,20 @@ DEFINE_PROFILE(outlet_pressure_pat_a,t,i)
 
   /* Write the property and thread id values for the flux condition to file */
   fid = fopen("pat_a_inlet_id", "w");
-  fprintf(fid, "%d, %d\n", zoneid, i);
+  fprintf(fid, "%d %d\n", zoneid, i);
   fclose(fid);
   //-----READING PATIENT VOLUME AND OLD FLUX----//
   fid = fopen("pat_a_volume.dat", "r");
-  fscanf(fid,"%lf, %lf", &volume, &old_flux);
+  fscanf(fid,"%lf %lf", &volume, &old_flux);
   fclose(fid);
 
   //------READING PATIENT A DATA-----------//
   fid = fopen("patient_a.dat", "r");
-  fscanf(fid,"%lf, %lf, %lf", &Ri, &Rzi, &Ci);
+  fscanf(fid,"%lf %lf %lf", &Ri, &Rzi, &Ci);
   fclose(fid);
   //------Done Reading Patirnt a data---------//
 
-   
+  Message0("%lf", Ci);
 
   #if !RP_HOST
   newpress = volume/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (old_flux );
@@ -76,20 +76,20 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
 
   /* Write the property and thread id values for the flux condition to file */
   fid = fopen("pat_b_inlet_id", "w");
-  fprintf(fid, "%d, %d\n", zoneid, i);
+  fprintf(fid, "%d %d\n", zoneid, i);
   fclose(fid);
   //-----READING PATIENT VOLUME AND OLD FLUX----//
   fid = fopen("pat_b_volume.dat", "r");
-  fscanf(fid,"%lf, %lf", &volume, &old_flux);
+  fscanf(fid,"%lf %lf", &volume, &old_flux);
   fclose(fid);
 
   //------READING PATIENT A DATA-----------//
   fid = fopen("patient_b.dat", "r");
-  fscanf(fid,"%lf, %lf, %lf", &Ri, &Rzi, &Ci);
+  fscanf(fid,"%lf %lf %lf", &Ri, &Rzi, &Ci);
   fclose(fid);
   //------Done Reading Patirnt a data---------//
 
-   
+  Message0("%lf", Ci);
 
   #if !RP_HOST
   newpress = volume/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (old_flux);
@@ -116,17 +116,17 @@ DEFINE_ADJUST(face_pressure_set_pat_a,domain)
   
   fid = fopen("pat_a_inlet_id", "r");
   //reading the surface id and the flow variable id
-  fscanf(fid,"%d, %d", &surface_thread_id, &iprop);
+  fscanf(fid,"%d %d", &surface_thread_id, &iprop);
   fclose(fid);
 
   //-----READING PATIENT VOLUME AND OLD FLUX----//
   fid = fopen("pat_a_volume.dat", "r");
-  fscanf(fid,"%lf, %lf", &volume, &old_flux);
+  fscanf(fid,"%lf %lf", &volume, &old_flux);
   fclose(fid);
 
   //------READING PATIENT A DATA-----------//
   fid = fopen("patient_a.dat", "r");
-  fscanf(fid,"%lf, %lf, %lf", &Ri, &Rzi, &Ci);
+  fscanf(fid,"%lf %lf %lf", &Ri, &Rzi, &Ci);
   fclose(fid);
 
 
@@ -192,17 +192,17 @@ DEFINE_ADJUST(face_pressure_set_pat_b,domain)
   
   fid = fopen("pat_b_inlet_id", "r");
   //reading the surface id and the flow variable id
-  fscanf(fid,"%d, %d", &surface_thread_id, &iprop);
+  fscanf(fid,"%d %d", &surface_thread_id, &iprop);
   fclose(fid);
 
   //-----READING PATIENT VOLUME AND OLD FLUX----//
   fid = fopen("pat_b_volume.dat", "r");
-  fscanf(fid,"%lf, %lf", &volume, &old_flux);
+  fscanf(fid,"%lf %lf", &volume, &old_flux);
   fclose(fid);
 
   //------READING PATIENT A DATA-----------//
   fid = fopen("patient_b.dat", "r");
-  fscanf(fid,"%lf, %lf, %lf", &Ri, &Rzi, &Ci);
+  fscanf(fid,"%lf %lf %lf", &Ri, &Rzi, &Ci);
   fclose(fid);
 
 
@@ -272,7 +272,7 @@ DEFINE_EXECUTE_AT_END(renew_vol_pat_a)
   int surface_thread_id, iprop;
   fid = fopen("pat_a_inlet_id", "r");
   //reading the surface id and the flow variable id
-  fscanf(fid,"%d, %d", &surface_thread_id, &iprop);
+  fscanf(fid,"%d %d", &surface_thread_id, &iprop);
   fclose(fid);
   domain = Get_Domain(1);
   
@@ -305,14 +305,14 @@ DEFINE_EXECUTE_AT_END(renew_vol_pat_a)
 
 
   fid = fopen("pat_a_volume.dat", "r");
-  fscanf(fid,"%lf, %lf", &volume, &old_flux);
+  fscanf(fid,"%lf %lf", &volume, &old_flux);
   fclose(fid);
   timestep = CURRENT_TIMESTEP;
   // no density volume in mm^3
   volume = volume + 1.e6*(total_flux + old_flux)/2.0*timestep;
   Message0("Patient A volume: %lf  \n",volume);
   fid = fopen("pat_a_volume.dat", "w");
-  fprintf(fid, "%lf, %lf\n", volume, total_flux);
+  fprintf(fid, "%lf %lf\n", volume, total_flux);
   fclose(fid);
 
 } 
@@ -328,7 +328,7 @@ DEFINE_EXECUTE_AT_END(renew_vol_pat_b)
   int surface_thread_id, iprop;
   fid = fopen("pat_b_inlet_id", "r");
   //reading the surface id and the flow variable id
-  fscanf(fid,"%d, %d", &surface_thread_id, &iprop);
+  fscanf(fid,"%d %d", &surface_thread_id, &iprop);
   fclose(fid);
   domain = Get_Domain(1);
   
@@ -361,14 +361,14 @@ DEFINE_EXECUTE_AT_END(renew_vol_pat_b)
 
 
   fid = fopen("pat_b_volume.dat", "r");
-  fscanf(fid,"%lf, %lf", &volume, &old_flux);
+  fscanf(fid,"%lf %lf", &volume, &old_flux);
   fclose(fid);
   timestep = CURRENT_TIMESTEP;
   // no density volume in mm^3
   volume = volume + 1.e6*(total_flux + old_flux)/2.0*timestep;
   Message0("Patient B volume: %lf  \n",volume);
   fid = fopen("pat_b_volume.dat", "w");
-  fprintf(fid, "%lf, %lf\n", volume, total_flux);
+  fprintf(fid, "%lf %lf\n", volume, total_flux);
   fclose(fid);
 
 } 
