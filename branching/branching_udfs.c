@@ -11,6 +11,21 @@ epivaloun tis katallilew oriakes synthikew gia thn piesi/*/
 // inlet_pressure_pat_a: name of boundary condition
 // t: thread (patient inlet)
 // i: number of flow variable, gets defined from the boundary condition dialog box
+
+
+//adjusting deltat
+DEFINE_DELTAT(mydeltat,d)
+{
+   real time_step;
+   real flow_time = CURRENT_TIME;
+   if (flow_time < 0.05 || (flow_time > 1.99 && flow_time < 2.1)) { time_step = 0.001;}
+   else time_step = 0.01;
+   return time_step;
+}
+
+
+
+/* Reading old flux, volume and adjusting pressure ath the begining of time step*/
 DEFINE_PROFILE(outlet_pressure_pat_a,t,i)
 {
   #if !RP_HOST
@@ -18,7 +33,7 @@ DEFINE_PROFILE(outlet_pressure_pat_a,t,i)
   #endif /* !RP_HOST */
   
   int zoneid = THREAD_ID(t);
-  real volume, old_flux, Ri, Rzi, newpress;
+  real volume, old_flux, Ri, Rzi, newpress, Ci;
 
   /* Write the property and thread id values for the flux condition to file */
   fid = fopen("pat_a_inlet_id", "w");
@@ -31,14 +46,14 @@ DEFINE_PROFILE(outlet_pressure_pat_a,t,i)
 
   //------READING PATIENT A DATA-----------//
   fid = fopen("patient_a.dat", "r");
-  fscanf(fid,"%lf, %lf", &Ri, &Rzi);
+  fscanf(fid,"%lf, %lf, %lf", &Ri, &Rzi, &Ci);
   fclose(fid);
   //------Done Reading Patirnt a data---------//
 
    
 
   #if !RP_HOST
-  newpress = volume/35*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (old_flux )/2.0;
+  newpress = volume/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (old_flux );
   /* Set profile values based on old flux and volume */
   begin_f_loop(f,t)
   {
@@ -57,7 +72,7 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
   face_t f;
   #endif /* !RP_HOST */
   int zoneid = THREAD_ID(t);
-  real volume, old_flux, Ri, Rzi, newpress;
+  real volume, old_flux, Ri, Rzi, newpress, Ci;
 
   /* Write the property and thread id values for the flux condition to file */
   fid = fopen("pat_b_inlet_id", "w");
@@ -70,14 +85,14 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
 
   //------READING PATIENT A DATA-----------//
   fid = fopen("patient_b.dat", "r");
-  fscanf(fid,"%lf, %lf", &Ri, &Rzi);
+  fscanf(fid,"%lf, %lf, %lf", &Ri, &Rzi, &Ci);
   fclose(fid);
   //------Done Reading Patirnt a data---------//
 
    
 
   #if !RP_HOST
-  newpress = volume/35*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (old_flux )/2.0;
+  newpress = volume/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (old_flux);
   /* Set profile values based on old flux and volume */
   begin_f_loop(f,t)
   {
@@ -91,16 +106,29 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
 
 
 //Define adjust for patient a
+//Calculating flox at patient, applying pressure calculated by current flux 
 DEFINE_ADJUST(face_pressure_set_pat_a,domain)
 {
   int surface_thread_id, iprop ;
   real total_flux=0.0; //initializing total flux
+  real volume, old_flux, Ri, Rzi, Ci, pseudonewpress;
 
   
   fid = fopen("pat_a_inlet_id", "r");
   //reading the surface id and the flow variable id
   fscanf(fid,"%d, %d", &surface_thread_id, &iprop);
   fclose(fid);
+
+  //-----READING PATIENT VOLUME AND OLD FLUX----//
+  fid = fopen("pat_a_volume.dat", "r");
+  fscanf(fid,"%lf, %lf", &volume, &old_flux);
+  fclose(fid);
+
+  //------READING PATIENT A DATA-----------//
+  fid = fopen("patient_a.dat", "r");
+  fscanf(fid,"%lf, %lf, %lf", &Ri, &Rzi, &Ci);
+  fclose(fid);
+
 
   #if !RP_HOST
     Thread* thread; /* these variables are only defined on "calculating" processes (Nodes & serial)*/
@@ -112,7 +140,7 @@ DEFINE_ADJUST(face_pressure_set_pat_a,domain)
   /* #if RP_NODE
   Message("\n Node %d is calculating on thread # %d \n",myid,surface_thread_id);
   #endif  RP_NODE */ 
-
+//SUMMING FLUX ACROSS ALL FACES OF PATIENT
   #if !RP_HOST /* SERIAL or NODE */
     thread = Lookup_Thread(domain,surface_thread_id);
 
@@ -134,7 +162,23 @@ DEFINE_ADJUST(face_pressure_set_pat_a,domain)
   #endif /* !RP_HOST */
 
   node_to_host_real_1(total_flux); /* Does nothing in SERIAL */
-  Message0("Total flux of patient A is : %f \n", total_flux);
+  Message0("Total flux of patient A is : %f Kg/s\n", total_flux);
+
+  #if !RP_HOST /* SERIAL or NODE */
+    thread = Lookup_Thread(domain,surface_thread_id);
+    pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*1.0 + old_flux*0.0 );
+    //LOOPING THROUGH ALL FACES 
+    begin_f_loop(face,thread)
+    # if RP_NODE
+      if (I_AM_NODE_SAME_P(F_PART(face,thread))) /* Check to see if face is allocated to this partition (Actually C0 of face) */
+    # endif
+    { 
+      //ASSIGNING NEW PRESSURE AT THREAD (WHICH IS THE INLET OF THE RESPECTIVE PATIENT)
+      F_PROFILE(face,thread,iprop) = pseudonewpress;
+    }
+    end_f_loop(face,thread)
+
+  #endif /* !RP_HOST */
 
 }
 
@@ -143,12 +187,24 @@ DEFINE_ADJUST(face_pressure_set_pat_b,domain)
 {
   int surface_thread_id, iprop ;
   real total_flux=0.0; //initializing total flux
+  real volume, old_flux, Ri, Rzi, Ci, pseudonewpress;
 
   
   fid = fopen("pat_b_inlet_id", "r");
   //reading the surface id and the flow variable id
   fscanf(fid,"%d, %d", &surface_thread_id, &iprop);
   fclose(fid);
+
+  //-----READING PATIENT VOLUME AND OLD FLUX----//
+  fid = fopen("pat_b_volume.dat", "r");
+  fscanf(fid,"%lf, %lf", &volume, &old_flux);
+  fclose(fid);
+
+  //------READING PATIENT A DATA-----------//
+  fid = fopen("patient_b.dat", "r");
+  fscanf(fid,"%lf, %lf, %lf", &Ri, &Rzi, &Ci);
+  fclose(fid);
+
 
   #if !RP_HOST
     Thread* thread; /* these variables are only defined on "calculating" processes (Nodes & serial)*/
@@ -182,7 +238,24 @@ DEFINE_ADJUST(face_pressure_set_pat_b,domain)
   #endif /* !RP_HOST */
 
   node_to_host_real_1(total_flux); /* Does nothing in SERIAL */
-  Message0("Total flux of patient B is : %f \n", total_flux);
+  Message0("Total flux of patient B is : %f Kg/s\n", total_flux);
+
+  #if !RP_HOST /* SERIAL or NODE */
+    thread = Lookup_Thread(domain,surface_thread_id);
+    pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*1.0 + old_flux*0.0);
+    //LOOPING THROUGH ALL FACES 
+    begin_f_loop(face,thread)
+    # if RP_NODE
+      if (I_AM_NODE_SAME_P(F_PART(face,thread))) /* Check to see if face is allocated to this partition (Actually C0 of face) */
+    # endif
+    { 
+      //ASSIGNING NEW PRESSURE AT THREAD (WHICH IS THE INLET OF THE RESPECTIVE PATIENT)
+     
+      F_PROFILE(face,thread,iprop) = pseudonewpress;
+    }
+    end_f_loop(face,thread)
+
+  #endif /* !RP_HOST */
 
 }
 
@@ -236,7 +309,7 @@ DEFINE_EXECUTE_AT_END(renew_vol_pat_a)
   fclose(fid);
   timestep = CURRENT_TIMESTEP;
   // no density volume in mm^3
-  volume = volume + 1.e6*(total_flux + old_flux)/2*timestep;
+  volume = volume + 1.e6*(total_flux + old_flux)/2.0*timestep;
   Message0("Patient A volume: %lf  \n",volume);
   fid = fopen("pat_a_volume.dat", "w");
   fprintf(fid, "%lf, %lf\n", volume, total_flux);
@@ -292,7 +365,7 @@ DEFINE_EXECUTE_AT_END(renew_vol_pat_b)
   fclose(fid);
   timestep = CURRENT_TIMESTEP;
   // no density volume in mm^3
-  volume = volume + 1.e6*(total_flux + old_flux)/2*timestep;
+  volume = volume + 1.e6*(total_flux + old_flux)/2.0*timestep;
   Message0("Patient B volume: %lf  \n",volume);
   fid = fopen("pat_b_volume.dat", "w");
   fprintf(fid, "%lf, %lf\n", volume, total_flux);
@@ -304,8 +377,6 @@ DEFINE_PROFILE(inlet_varying_flux,thread,i)
 {
  face_t face;
  #if !RP_HOST /* SERIAL or NODE */
-   
-
     begin_f_loop(face,thread)
       # if RP_NODE
         if (I_AM_NODE_SAME_P(F_PART(face,thread))) /* Check to see if face is allocated to this partition (Actually C0 of face) */
