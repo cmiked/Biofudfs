@@ -18,7 +18,7 @@ DEFINE_DELTAT(mydeltat,d)
 {
    real time_step;
    real flow_time = CURRENT_TIME;
-   if (flow_time < 0.05 || (flow_time > 1.99 && flow_time < 2.1)) { time_step = 0.001;}
+   if (flow_time < 0.03 || (flow_time > 1.99 && flow_time < 4)) { time_step = 0.001;}
    else time_step = 0.01;
    return time_step;
 }
@@ -50,7 +50,6 @@ DEFINE_PROFILE(outlet_pressure_pat_a,t,i)
   fclose(fid);
   //------Done Reading Patirnt a data---------//
 
-  Message0("%lf", Ci);
 
   #if !RP_HOST
   newpress = volume/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (old_flux );
@@ -89,7 +88,6 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
   fclose(fid);
   //------Done Reading Patirnt a data---------//
 
-  Message0("%lf", Ci);
 
   #if !RP_HOST
   newpress = volume/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (old_flux);
@@ -166,7 +164,7 @@ DEFINE_ADJUST(face_pressure_set_pat_a,domain)
 
   #if !RP_HOST /* SERIAL or NODE */
     thread = Lookup_Thread(domain,surface_thread_id);
-    pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*1.0 + old_flux*0.0 );
+    pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3 );
     //LOOPING THROUGH ALL FACES 
     begin_f_loop(face,thread)
     # if RP_NODE
@@ -242,7 +240,7 @@ DEFINE_ADJUST(face_pressure_set_pat_b,domain)
 
   #if !RP_HOST /* SERIAL or NODE */
     thread = Lookup_Thread(domain,surface_thread_id);
-    pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*1.0 + old_flux*0.0);
+    pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3);
     //LOOPING THROUGH ALL FACES 
     begin_f_loop(face,thread)
     # if RP_NODE
