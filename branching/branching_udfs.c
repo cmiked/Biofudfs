@@ -18,16 +18,28 @@ DEFINE_DELTAT(mydeltat,d)
 {
    real time_step;
    real flow_time = CURRENT_TIME;
-   if (flow_time < 0.03 || (flow_time > 1.99 && flow_time < 4)) { time_step = 0.001;}
+   if (flow_time < 0.03 || (flow_time > 1.9 && flow_time < 4)) { time_step = 0.001;}
    else time_step = 0.01;
    return time_step;
 }
 
+//in order to execute define profiles only once per timestep
+//Kanonika ta define profile ektelountai se interval iterations opws exei oristei sto gui
+//emeis theloyme na ektelountai mia fora sthn arxi kathe timestep
+//giafto orizontai oi pseudoxronoi a_time b_time c_time (current time)
+//an o a-b_time diaferei apo ton c_time ekteleitai to define_profile kai a-b_time ginetai isos me c_time
+//alliws oxi
+
+//o c_time allazei sto define_adjust
+real c_time = 0.0;
+real a_time = -0.1;
+real b_time = -0.1;
 
 
 /* Reading old flux, volume and adjusting pressure ath the begining of time step*/
 DEFINE_PROFILE(outlet_pressure_pat_a,t,i)
 {
+  if(a_time!=c_time){
   #if !RP_HOST
   face_t f;
   #endif /* !RP_HOST */
@@ -60,6 +72,8 @@ DEFINE_PROFILE(outlet_pressure_pat_a,t,i)
   }
   end_f_loop(f,t)
   #endif /* !RP_HOST */
+  a_time = c_time;
+  }
 }
 
 
@@ -67,6 +81,7 @@ DEFINE_PROFILE(outlet_pressure_pat_a,t,i)
 
 DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
 {
+  if(b_time != c_time){
   #if !RP_HOST
   face_t f;
   #endif /* !RP_HOST */
@@ -88,6 +103,30 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
   fclose(fid);
   //------Done Reading Patirnt a data---------//
 
+  //comment uncomment this section for vane adjustment
+  //---------------------ADJUSTING VANE---------------------//
+  /*
+  float newRzi= 19.0 - 14.0;
+  float time = CURRENT_TIME;
+  float Q0 = 521.0;
+  float e = Q0*0.05;
+  float c = (1.0/35.0 - 1.0/51.0)*1.e3;
+  float Vtot = 1000.0;
+  if((CURRENT_TIME>= 0.04 )&& (CURRENT_TIME <= 2.0)){
+    if (time>1.96) time = 1.96;
+    newRzi += ((time-1.0)*Q0 + Vtot/2)*c/(e + Q0 * (1 - pow(cos(sin(3.1415 / 2.0 *time )),400.0)));
+  }
+  
+
+  fid = fopen("patient_b.dat", "w");
+  fprintf(fid,"14.0 %f 51.0", newRzi);
+  fclose(fid);
+
+  Rzi = newRzi;
+  Message0("Rz= %f   %lf \n", newRzi, Rzi );
+  
+  */
+ //-----------------DONE ADJUSTING -----------------------//
 
   #if !RP_HOST
   newpress = volume/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (old_flux);
@@ -98,6 +137,11 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
   }
   end_f_loop(f,t)
   #endif /* !RP_HOST */
+
+
+  b_time = c_time;
+  }
+
 }
 
 
@@ -107,6 +151,7 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
 //Calculating flox at patient, applying pressure calculated by current flux 
 DEFINE_ADJUST(face_pressure_set_pat_a,domain)
 {
+  c_time = CURRENT_TIME;
   int surface_thread_id, iprop ;
   real total_flux=0.0; //initializing total flux
   real volume, old_flux, Ri, Rzi, Ci, pseudonewpress;
@@ -164,6 +209,7 @@ DEFINE_ADJUST(face_pressure_set_pat_a,domain)
 
   #if !RP_HOST /* SERIAL or NODE */
     thread = Lookup_Thread(domain,surface_thread_id);
+    if(CURRENT_TIME > 2) {old_flux = total_flux = 0.0;}
     pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3 );
     //LOOPING THROUGH ALL FACES 
     begin_f_loop(face,thread)
@@ -240,6 +286,7 @@ DEFINE_ADJUST(face_pressure_set_pat_b,domain)
 
   #if !RP_HOST /* SERIAL or NODE */
     thread = Lookup_Thread(domain,surface_thread_id);
+    if(CURRENT_TIME > 2) {old_flux = total_flux = 0.0;}
     pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3);
     //LOOPING THROUGH ALL FACES 
     begin_f_loop(face,thread)
