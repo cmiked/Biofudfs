@@ -109,7 +109,7 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
   float newRzi= 19.0 - 14.0;
   float time = CURRENT_TIME;
   float Q0 = 521.0;
-  float e = Q0*0.05;
+  float e = Q0*0.0;
   float c = (1.0/35.0 - 1.0/51.0)*1.e3;
   float Vtot = 1000.0;
   if((CURRENT_TIME>= 0.04 )&& (CURRENT_TIME <= 2.0)){
@@ -124,8 +124,8 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
 
   Rzi = newRzi;
   Message0("Rz= %f   %lf \n", newRzi, Rzi );
-  
   */
+  
  //-----------------DONE ADJUSTING -----------------------//
 
   #if !RP_HOST
@@ -209,8 +209,8 @@ DEFINE_ADJUST(face_pressure_set_pat_a,domain)
 
   #if !RP_HOST /* SERIAL or NODE */
     thread = Lookup_Thread(domain,surface_thread_id);
-    if(CURRENT_TIME > 2) {old_flux = total_flux = 0.0;}
-    pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3 );
+    if(CURRENT_TIME > 1.96 || CURRENT_TIME < 0.01) {old_flux = total_flux = 0.0; pseudonewpress =0.0;}
+    else pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3 );
     //LOOPING THROUGH ALL FACES 
     begin_f_loop(face,thread)
     # if RP_NODE
@@ -286,8 +286,8 @@ DEFINE_ADJUST(face_pressure_set_pat_b,domain)
 
   #if !RP_HOST /* SERIAL or NODE */
     thread = Lookup_Thread(domain,surface_thread_id);
-    if(CURRENT_TIME > 2) {old_flux = total_flux = 0.0;}
-    pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3);
+    if(CURRENT_TIME > 1.96 || CURRENT_TIME < 0.01) {old_flux = total_flux = 0.0; pseudonewpress = 0.0;}
+    else pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3);
     //LOOPING THROUGH ALL FACES 
     begin_f_loop(face,thread)
     # if RP_NODE
