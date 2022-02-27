@@ -111,10 +111,10 @@ DEFINE_PROFILE(outlet_pressure_pat_b,t,i)
   float Q0 = 521.0;
   float e = Q0*0.0;
   float c = (1.0/35.0 - 1.0/51.0)*1.e3;
-  float Vtot = 1000.0;
+  float Vtot = 500.0;
   if((CURRENT_TIME>= 0.04 )&& (CURRENT_TIME <= 2.0)){
     if (time>1.96) time = 1.96;
-    newRzi += ((time-1.0)*Q0 + Vtot/2)*c/(e + Q0 * (1 - pow(cos(sin(3.1415 / 2.0 *time )),400.0)));
+    newRzi += ((time-1.0)*Q0/2 + Vtot/2)*c/(e + Q0/2 * (1 - pow(cos(sin(3.1415 / 2.0 *time )),400.0)));
   }
   
 
@@ -209,8 +209,8 @@ DEFINE_ADJUST(face_pressure_set_pat_a,domain)
 
   #if !RP_HOST /* SERIAL or NODE */
     thread = Lookup_Thread(domain,surface_thread_id);
-    if(CURRENT_TIME > 1.96 || CURRENT_TIME < 0.01) {old_flux = total_flux = 0.0; pseudonewpress =0.0;}
-    else pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3 );
+  //  if(CURRENT_TIME > 1.96 || CURRENT_TIME < 0.01) {old_flux = total_flux = 0.0; pseudonewpress = 0.0;}
+    pseudonewpress = (volume + 1.e6*(old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3 );
     //LOOPING THROUGH ALL FACES 
     begin_f_loop(face,thread)
     # if RP_NODE
@@ -286,8 +286,8 @@ DEFINE_ADJUST(face_pressure_set_pat_b,domain)
 
   #if !RP_HOST /* SERIAL or NODE */
     thread = Lookup_Thread(domain,surface_thread_id);
-    if(CURRENT_TIME > 1.96 || CURRENT_TIME < 0.01) {old_flux = total_flux = 0.0; pseudonewpress = 0.0;}
-    else pseudonewpress = (volume + (old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3);
+   // if(CURRENT_TIME > 1.96 || CURRENT_TIME < 0.01) {old_flux = total_flux = 0.0; pseudonewpress = 0.0;}
+    pseudonewpress = (volume + 1.e6*(old_flux*0.5 + total_flux*0.5) * CURRENT_TIMESTEP)/Ci*98.06  + (Ri + Rzi) * 98.06 * 1.e3* (total_flux*0.7 + old_flux*0.3);
     //LOOPING THROUGH ALL FACES 
     begin_f_loop(face,thread)
     # if RP_NODE
@@ -427,8 +427,8 @@ DEFINE_PROFILE(inlet_varying_flux,thread,i)
         if (I_AM_NODE_SAME_P(F_PART(face,thread))) /* Check to see if face is allocated to this partition (Actually C0 of face) */
       # endif
       {
-        if(CURRENT_TIME<=2) F_PROFILE(face,thread,i) = 2*5.21e-4 * ( 1 - pow(cos(sin(3.1415*CURRENT_TIME/2.0)),400));
-        else F_PROFILE(face,thread,i) =0.0;
+        if(CURRENT_TIME<=2) F_PROFILE(face,thread,i) = 1.13316*520.78955e-6 * ( 1 - pow(cos(sin(3.1415*CURRENT_TIME/2.0)),400));
+        else F_PROFILE(face,thread,i) = 0.0;
       }
     end_f_loop(face,thread)
     #endif /* !RP_HOST */
